@@ -24,12 +24,12 @@ pub struct Page {
     /// URL from which the webpage was returned.
     #[serde(serialize_with = "http_serde::uri::serialize")]
     pub url: Uri,
-    /// Extracte information from the website's content.
-    #[serde(skip)]
-    pub html: webpage::HTML,
-    /// Readable content of the webpage.
-    #[serde(skip)]
-    pub readable: Readable,
+    // Extracte information from the website's content.
+    // #[serde(skip)]
+    // pub html: webpage::HTML,
+    // Readable content of the webpage.
+    // #[serde(skip)]
+    // pub readable: Readable,
 }
 
 #[derive(Debug, Diagnostic, Error)]

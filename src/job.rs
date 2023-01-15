@@ -71,6 +71,7 @@ pub async fn download_source(
             .map(Source::Page)
             .unwrap(),
         Some(SourceType::Image) => todo!(),
+        Some(SourceType::Video) => todo!(),
         None => Err(JobError::MimeNotSupported(effective_ct))?,
     };
 

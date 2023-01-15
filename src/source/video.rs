@@ -1,7 +1,10 @@
 use isahc::http::Uri;
+use serde::Serialize;
 
+#[derive(Clone, Debug, Serialize)]
 pub struct Video {
     pub transcript: String,
     pub title: String,
-    pub url: Option<Uri>,
+    #[serde(serialize_with = "http_serde::uri::serialize")]
+    pub url: Uri,
 }
