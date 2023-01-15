@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use futures::StreamExt;
-use isahc::http::{HeaderMap, Uri};
 use miette::Diagnostic;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -15,9 +14,7 @@ use tokio::io::AsyncWriteExt;
 // use tokio_stream::StreamExt;
 use tokio_stream::wrappers::ReadDirStream;
 
-use crate::source::page::recover_page;
-use crate::source::Source;
-use crate::url_preferences::UrlPreferences;
+use crate::source::{Page, Source};
 use crate::Seen;
 
 #[derive(Debug, Error, Diagnostic)]
@@ -33,7 +30,7 @@ pub enum RecoverError {
 /// Such a store can be later re-indexed by TODO.
 pub async fn archive_source(seen: &Seen, source: &Source, metadata: &HashMap<String, Value>) {
     let time = OffsetDateTime::now_local()
-        .unwrap_or(OffsetDateTime::now_utc())
+        .unwrap_or_else(|_| OffsetDateTime::now_utc())
         .format(&Rfc3339)
         .ok();
 
@@ -87,30 +84,15 @@ pub async fn recover_source(seen: &Seen, file: impl AsRef<Path>) -> Result<(), R
     let archived = serde_json::from_str::<Archived>(&read_to_string(file).await?)?;
 
     match archived.source {
-        ArchivedSource::Page(p) => {
-            let url_preferences: Option<UrlPreferences> =
-                crate::url_preferences::for_url(&p.url, seen).await;
-
-            let preferences = match url_preferences {
-                Some(UrlPreferences::Blacklist) => Err(todo!()),
-                Some(UrlPreferences::Preferences(s)) => Ok(Some(s)),
-                None => Ok(None),
-            }
-            .unwrap();
-
-            if let Ok(page) = recover_page(p, crate::options::extract(&seen.options, &preferences))
-            {
-                crate::job::index_source(
-                    seen,
-                    &page.url.clone(),
-                    Source::Page(page),
-                    archived.metadata,
-                    &[],
-                )
-                .await
-                .unwrap()
-            }
-        }
+        ArchivedSource::Page(page) => crate::job::index_source(
+            seen,
+            &page.url.clone(),
+            Source::Page(page),
+            archived.metadata,
+            &[],
+        )
+        .await
+        .unwrap(),
     }
 
     Ok(())
@@ -127,15 +109,5 @@ pub struct Archived {
 /// Archived source.
 #[derive(Debug, Clone, Deserialize)]
 pub enum ArchivedSource {
-    Page(ArchivedPage),
-}
-
-/// Archived page.
-#[derive(Debug, Clone, Deserialize)]
-pub struct ArchivedPage {
-    #[serde(deserialize_with = "http_serde::header_map::deserialize")]
-    pub headers: HeaderMap,
-    pub body: String,
-    #[serde(deserialize_with = "http_serde::uri::deserialize")]
-    pub url: Uri,
+    Page(Page),
 }
