@@ -10,7 +10,6 @@ use thiserror::Error;
 
 use crate::archive::archive_source;
 use crate::document::{Content, Prepare};
-use crate::extract::Extraction;
 use crate::index::IndexError;
 use crate::metadata::Metadata;
 use crate::source::{make_page, Source, SourceType};
@@ -37,16 +36,6 @@ pub async fn go(seen: &Seen, url: Uri, tags: &[String]) -> Result<(), JobError> 
     let default_metadata =
         HashMap::from([("tag".to_string(), serde_json::to_value(tags).unwrap())]);
 
-    let source = download_source(seen, &url, &default_metadata).await?;
-
-    index_source(seen, &url, source, default_metadata, tags).await
-}
-
-pub async fn download_source(
-    seen: &Seen,
-    url: &Uri,
-    default_metadata: &HashMap<String, Value>,
-) -> Result<Source, JobError> {
     // 1. Get preferences for URL (glob?)
     let url_preferences: Option<UrlPreferences> = url_preferences::for_url(&url, seen).await;
 
@@ -56,6 +45,17 @@ pub async fn download_source(
         None => Ok(None),
     }?;
 
+    let source = download_source(seen, &url, preferences.as_ref(), &default_metadata).await?;
+
+    index_source(seen, &url, source, preferences, default_metadata, tags).await
+}
+
+pub async fn download_source(
+    seen: &Seen,
+    url: &Uri,
+    preferences: Option<&Preferences>,
+    default_metadata: &HashMap<String, Value>,
+) -> Result<Source, JobError> {
     let response = seen.http_client.get_async(url).await?;
 
     // TODO: check status
@@ -63,13 +63,9 @@ pub async fn download_source(
 
     let ct = preferences.as_ref().and_then(|s| s.content_type.clone());
     let effective_ct = ct.unwrap_or(content_type(&response)?);
-    let extract = crate::options::extract(&seen.options, &preferences);
 
     let source: Source = match SourceType::from_mime(&effective_ct) {
-        Some(SourceType::Page) => make_page(response, extract)
-            .await
-            .map(Source::Page)
-            .unwrap(),
+        Some(SourceType::Page) => make_page(response).await.map(Source::Page).unwrap(),
         Some(SourceType::Image) => todo!(),
         Some(SourceType::Video) => todo!(),
         None => Err(JobError::MimeNotSupported(effective_ct))?,
@@ -84,10 +80,11 @@ pub async fn index_source(
     seen: &Seen,
     url: &Uri,
     source: Source,
+    preferences: Option<Preferences>,
     default_metadata: HashMap<String, Value>,
     tags: &[String],
 ) -> Result<(), JobError> {
-    let document = source.prepare_document(default_metadata);
+    let document = source.prepare_document(default_metadata, &seen.options, preferences);
 
     let _ = seen.index.index(&document)?;
 

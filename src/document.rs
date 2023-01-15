@@ -4,10 +4,17 @@ use isahc::http::Uri;
 use serde_json::Value;
 use uuid::Uuid;
 
+use crate::{options::SeenOptions, url_preferences::Preferences};
+
 /// Marks types that can be turned into [`documents`](Document).
 pub trait Prepare {
     /// Generate [`Document`] from an object and additional data.
-    fn prepare_document(&self, metadata: HashMap<String, Value>) -> Document;
+    fn prepare_document(
+        &self,
+        metadata: HashMap<String, Value>,
+        options: &SeenOptions,
+        preferences: Option<Preferences>,
+    ) -> Document;
 }
 
 /// Document describes object that is fully prepared to be stored and indexed.

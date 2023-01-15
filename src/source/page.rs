@@ -10,7 +10,8 @@ use thiserror::Error;
 use uuid::Uuid;
 
 use crate::document::*;
-use crate::extract::*;
+use crate::options::SeenOptions;
+use crate::url_preferences::Preferences;
 
 /// Content of a webpage .
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -29,10 +30,7 @@ pub struct Page {
 pub enum PageError {}
 
 /// Turn response into a [`Page`] using given `extract`.
-pub async fn make_page(
-    mut res: Response<AsyncBody>,
-    extract: &Extraction,
-) -> Result<Page, PageError> {
+pub async fn make_page(mut res: Response<AsyncBody>) -> Result<Page, PageError> {
     let url = res.effective_uri().unwrap().clone();
     let headers = res.headers().clone();
     let body = res.text().await.unwrap();
@@ -41,10 +39,15 @@ pub async fn make_page(
 }
 
 impl Prepare for Page {
-    fn prepare_document(&self, metadata: HashMap<String, Value>) -> Document {
+    fn prepare_document(
+        &self,
+        metadata: HashMap<String, Value>,
+        options: &SeenOptions,
+        preferences: Option<Preferences>,
+    ) -> Document {
         let mut metadata = metadata;
 
-        let extract: &Extraction = todo!();
+        let extract = crate::options::extract(options, &preferences);
 
         let html =
             webpage::HTML::from_string(self.body.clone(), Some(self.url.to_string())).unwrap();
@@ -75,7 +78,7 @@ impl Prepare for Page {
             url: self.url.clone(),
             uuid: Uuid::new_v4(),
             content: Content::WebPage {
-                text: readable.text.clone(),
+                text: readable.text,
                 rich_text: Some(md),
             },
             metadata,

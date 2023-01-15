@@ -10,7 +10,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use self::video::Video;
-use crate::document::*;
+use crate::{document::*, options::SeenOptions, url_preferences::Preferences};
 
 /// Pre-processed input to extraction algorithms.
 ///
@@ -22,9 +22,14 @@ pub enum Source {
 }
 
 impl Prepare for Source {
-    fn prepare_document(&self, metadata: HashMap<String, Value>) -> Document {
+    fn prepare_document(
+        &self,
+        metadata: HashMap<String, Value>,
+        options: &SeenOptions,
+        preferences: Option<Preferences>,
+    ) -> Document {
         match self {
-            Source::Page(page) => page.prepare_document(metadata),
+            Source::Page(page) => page.prepare_document(metadata, options, preferences),
             Source::Video(_) => todo!(),
         }
     }
