@@ -5,6 +5,8 @@ edition = "2021"
 license = "Apache-2.0 OR MIT"
 repository = "https://jirijakes.com/code/seen"
 description = "Store and search through the content you have seen."
+categories = ["command-line-utilities"]
+keywords = ["cli", "web", "archive", "search", "index"]
 
 [dependencies]
 chromiumoxide = { version = "0.4.0", default-features = false, features = ["tokio-runtime"] }

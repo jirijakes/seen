@@ -32,7 +32,6 @@ Only basic form of the features is available now.
 ```
 fossil clone https://jirijakes.com/code/seen
 cd seen
-make clean
 cargo install --path .
 ```
 

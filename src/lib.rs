@@ -4,13 +4,11 @@ pub mod document;
 pub mod archive;
 mod export;
 mod extract;
-mod html;
 mod index;
 pub mod job;
 mod metadata;
 mod options;
 mod readability;
-mod request;
 mod source;
 mod url_preferences;
 
