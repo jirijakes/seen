@@ -32,7 +32,7 @@ time = { version = "0.3.17", features = ["macros", "std", "formatting", "local-o
 tokio = { version = "1.24.1", features = ["full"] }
 tokio-stream = { version = "*", features = ["fs"] }
 toml = "0.5.10"
-typetag = "0.2.4"
+typetag = "0.2.5"
 uuid = "1.2.2"
 webpage = "1.5.0"
 
