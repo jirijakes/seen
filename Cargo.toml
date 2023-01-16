@@ -1,19 +1,12 @@
 [package]
 name = "seen"
-version = "0.1.0"
+version = "0.1.0-alpha.1"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "Apache-2.0 OR MIT"
+repository = "https://jirijakes.com/code/seen"
+description = "Store and search through the content you have seen."
 
 [dependencies]
-#fang = { version = "*", default-features = false, features = ["tokio"] } # https://pxp9.github.io/rust/async-processing/
-# reqwest = { version = "*", features = ["blocking", "socks"] }
-# rusqlite = { version = "*", features = ["url"] }
-# mozilla-readability = "*"
-# url = "*"
-# wkhtmltopdf = "*"
-# tesseract = "*"
-
 chromiumoxide = { version = "0.4.0", default-features = false, features = ["tokio-runtime"] }
 clap = { version = "4.1.1", features = ["derive"] }
 comfy-table = "6.1.4"
