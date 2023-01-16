@@ -13,10 +13,7 @@ pub async fn pdf() {
         }
     });
 
-    let page = browser
-        .new_page("...")
-        .await
-        .unwrap();
+    let page = browser.new_page("...").await.unwrap();
 
     page.save_pdf(PrintToPdfParams::default(), "out.pdf")
         .await

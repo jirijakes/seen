@@ -42,7 +42,7 @@ pub async fn archive_source(seen: &Seen, source: &Source, metadata: &HashMap<Str
          "time": time
     });
 
-    let filename = time::OffsetDateTime::now_utc()
+    let filename = OffsetDateTime::now_utc()
         .format(&format_description!(
             "[year][month][day][hour][minute][second][subsecond]"
         ))
@@ -104,6 +104,7 @@ pub async fn recover_source(seen: &Seen, file: impl AsRef<Path>) -> Result<(), R
                 Source::Page(page),
                 preferences,
                 archived.metadata,
+                archived.time,
                 &[],
             )
             .await
@@ -119,6 +120,7 @@ pub async fn recover_source(seen: &Seen, file: impl AsRef<Path>) -> Result<(), R
 #[derive(Debug, Clone, Deserialize)]
 pub struct Archived {
     pub metadata: HashMap<String, Value>,
+    pub time: OffsetDateTime,
     pub source: ArchivedSource,
 }
 

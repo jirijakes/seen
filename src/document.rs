@@ -2,9 +2,11 @@ use std::collections::HashMap;
 
 use isahc::http::Uri;
 use serde_json::Value;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
-use crate::{options::SeenOptions, url_preferences::Preferences};
+use crate::options::SeenOptions;
+use crate::url_preferences::Preferences;
 
 /// Marks types that can be turned into [`documents`](Document).
 pub trait Prepare {
@@ -14,6 +16,7 @@ pub trait Prepare {
         metadata: HashMap<String, Value>,
         options: &SeenOptions,
         preferences: Option<Preferences>,
+        time: OffsetDateTime,
     ) -> Document;
 }
 
@@ -25,6 +28,9 @@ pub struct Document {
 
     /// Unique identifier of the document.
     pub uuid: Uuid,
+
+    /// Time of indexing.
+    pub time: OffsetDateTime,
 
     /// Original URL.
     pub url: Uri,

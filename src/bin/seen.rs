@@ -66,14 +66,23 @@ async fn main() -> Result<()> {
                         Cell::new(&document.url),
                     ]);
 
+                    table.add_row(vec![
+                        Cell::new("Added")
+                            .add_attribute(Attribute::Bold)
+                            .set_alignment(CellAlignment::Right),
+                        Cell::new(document.time.date()),
+                    ]);
+
                     if let Some(tags) = document.metadata.get("tags") {
                         if let Ok(tags) = serde_json::from_value::<Vec<String>>(tags.clone()) {
-                            table.add_row(vec![
-                                Cell::new("Tags")
-                                    .add_attribute(Attribute::Bold)
-                                    .set_alignment(CellAlignment::Right),
-                                Cell::new(tags.join(", ")),
-                            ]);
+                            if !tags.is_empty() {
+                                table.add_row(vec![
+                                    Cell::new("Tags")
+                                        .add_attribute(Attribute::Bold)
+                                        .set_alignment(CellAlignment::Right),
+                                    Cell::new(tags.join(", ")),
+                                ]);
+                            }
                         }
                     }
 
@@ -91,12 +100,14 @@ async fn main() -> Result<()> {
                     //     Cell::new(&hit.score.to_string()),
                     // ]);
 
-                    table.add_row(vec![
-                        Cell::new("Snippet")
-                            .add_attribute(Attribute::Bold)
-                            .set_alignment(CellAlignment::Right),
-                        Cell::new(termimad::term_text(&hit.snippet)),
-                    ]);
+                    if !hit.snippet.is_empty() {
+                        table.add_row(vec![
+                            Cell::new("Snippet")
+                                .add_attribute(Attribute::Bold)
+                                .set_alignment(CellAlignment::Right),
+                            Cell::new(termimad::term_text(&hit.snippet)),
+                        ]);
+                    }
 
                     println!("{table}\n");
                 })

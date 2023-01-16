@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS "documents" (
 	"id"	       INTEGER NOT NULL,
 	"uuid"	       BLOB NOT NULL UNIQUE,
 	"url"	       TEXT NOT NULL,
+        "time"         TEXT NOT NULL,
 	"title"        TEXT NOT NULL,
 	"metadata"     TEXT NOT NULL DEFAULT '{}',
 	"content_type" TEXT NOT NULL,

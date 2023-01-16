@@ -8,9 +8,12 @@ use mime::{Mime, HTML, IMAGE, PNG, TEXT, VIDEO};
 pub use page::{make_page, Page, PageError};
 use serde::Serialize;
 use serde_json::Value;
+use time::OffsetDateTime;
 
 use self::video::Video;
-use crate::{document::*, options::SeenOptions, url_preferences::Preferences};
+use crate::document::*;
+use crate::options::SeenOptions;
+use crate::url_preferences::Preferences;
 
 /// Pre-processed input to extraction algorithms.
 ///
@@ -27,9 +30,10 @@ impl Prepare for Source {
         metadata: HashMap<String, Value>,
         options: &SeenOptions,
         preferences: Option<Preferences>,
+        time: OffsetDateTime,
     ) -> Document {
         match self {
-            Source::Page(page) => page.prepare_document(metadata, options, preferences),
+            Source::Page(page) => page.prepare_document(metadata, options, preferences, time),
             Source::Video(_) => todo!(),
         }
     }

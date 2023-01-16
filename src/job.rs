@@ -7,6 +7,7 @@ use miette::Diagnostic;
 use mime::Mime;
 use serde_json::Value;
 use thiserror::Error;
+use time::OffsetDateTime;
 
 use crate::archive::archive_source;
 use crate::document::{Content, Prepare};
@@ -47,7 +48,16 @@ pub async fn go(seen: &Seen, url: Uri, tags: &[String]) -> Result<(), JobError> 
 
     let source = download_source(seen, &url, preferences.as_ref()).await?;
     archive_source(seen, &source, &default_metadata).await;
-    index_source(seen, &url, source, preferences, default_metadata, tags).await
+    index_source(
+        seen,
+        &url,
+        source,
+        preferences,
+        default_metadata,
+        OffsetDateTime::now_utc(),
+        tags,
+    )
+    .await
 }
 
 pub async fn download_source(
@@ -79,9 +89,10 @@ pub async fn index_source(
     source: Source,
     preferences: Option<Preferences>,
     default_metadata: HashMap<String, Value>,
+    time: OffsetDateTime,
     tags: &[String],
 ) -> Result<(), JobError> {
-    let document = source.prepare_document(default_metadata, &seen.options, preferences);
+    let document = source.prepare_document(default_metadata, &seen.options, preferences, time);
 
     let _ = seen.index.index(&document)?;
 
@@ -94,10 +105,11 @@ pub async fn index_source(
     let document_id: i64 = {
         let mjs = serde_json::to_string(&metadata).unwrap();
         sqlx::query!(
-            "INSERT INTO documents (uuid, url, title, metadata, content_type) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO documents (uuid, url, title, time, metadata, content_type) VALUES (?, ?, ?, ?, ?, ?)",
             document.uuid,
             url_s,
             document.title,
+            document.time,
             mjs,
 	    "webpage"
         )

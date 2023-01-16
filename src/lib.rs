@@ -16,7 +16,6 @@ mod url_preferences;
 
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::str::FromStr;
 
 use directories::ProjectDirs;
 use futures::{StreamExt, TryStreamExt};
@@ -27,6 +26,7 @@ use options::SeenOptions;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
 use thiserror::Error;
+use time::OffsetDateTime;
 use tokio::fs::read_to_string;
 use uuid::Uuid;
 
@@ -113,6 +113,7 @@ WHERE documents.uuid = ?"#,
                     title: document.title,
                     url: document.url.parse().unwrap(),
                     uuid: document.uuid,
+                    time: document.time,
                     content: Content::WebPage {
                         text: c.plain,
                         rich_text: c.rich,
@@ -127,7 +128,7 @@ WHERE documents.uuid = ?"#,
     pub async fn list(&self) -> Result<Vec<Document>, SeenError> {
         sqlx::query_as_unchecked!(
             PartialDocument,
-            "SELECT id, uuid, url, title, content_type, metadata FROM documents",
+            "SELECT id, uuid, url, time, title, content_type, metadata FROM documents",
         )
         .fetch(&self.pool)
         .map_err(|e| e.into())
@@ -142,7 +143,7 @@ WHERE documents.uuid = ?"#,
     pub async fn get(&self, uuid: &Uuid) -> Result<Document, SeenError> {
         let document = sqlx::query_as_unchecked!(
             PartialDocument,
-            "SELECT id, uuid, url, title, content_type, metadata FROM documents WHERE uuid = ?",
+            "SELECT id, uuid, url, time, title, content_type, metadata FROM documents WHERE uuid = ?",
             uuid
         )
         .fetch_one(&self.pool)
@@ -173,6 +174,7 @@ struct PartialDocument {
     title: String,
     uuid: Uuid,
     url: String,
+    time: OffsetDateTime,
     content_type: ContentType,
     metadata: String,
 }

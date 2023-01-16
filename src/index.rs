@@ -7,10 +7,12 @@ use tantivy::collector::TopDocs;
 use tantivy::directory::error::OpenDirectoryError;
 use tantivy::directory::MmapDirectory;
 use tantivy::query::{QueryParser, QueryParserError};
-use tantivy::schema::{Field, Schema, TextFieldIndexing, TextOptions, STORED, TEXT};
+use tantivy::schema::{
+    Cardinality, Field, Schema, TextFieldIndexing, TextOptions, INDEXED, STORED, TEXT,
+};
 use tantivy::{
-    DocAddress, Document as TantivyDocument, Index, IndexReader, IndexWriter, Score,
-    SnippetGenerator, TantivyError,
+    DateOptions, DatePrecision, DateTime, DocAddress, Document as TantivyDocument, Index,
+    IndexReader, IndexWriter, Score, SnippetGenerator, TantivyError,
 };
 use thiserror::Error;
 use uuid::Uuid;
@@ -37,9 +39,15 @@ pub enum SearchError {
 
 /// All tantivy fields that seen uses.
 struct Fields {
+    /// Title of the source (web page, video etc.).
     title: Field,
+    /// Textual content of the source (article content, video speech etc.).
     content: Field,
+    /// Time when the document was indexed.
+    time: Field,
+    /// Additional fields.
     meta: Field,
+    /// UUID of the document.
     uuid: Field,
 }
 
@@ -63,7 +71,12 @@ impl SeenIndex {
         let text_options = TextOptions::default()
             .set_indexing_options(text_field)
             .set_stored();
+        let time_options = DateOptions::from(INDEXED)
+            .set_stored()
+            .set_fast(Cardinality::MultiValues)
+            .set_precision(DatePrecision::Seconds);
         let title = schema_builder.add_text_field("title", text_options.clone());
+        let time = schema_builder.add_date_field("time", time_options);
         let content = schema_builder.add_text_field("content", text_options);
         let meta = schema_builder.add_json_field("meta", TEXT | STORED);
         let uuid = schema_builder.add_bytes_field("uuid", STORED);
@@ -86,6 +99,7 @@ impl SeenIndex {
             fields: Fields {
                 title,
                 content,
+                time,
                 meta,
                 uuid,
             },
@@ -103,6 +117,7 @@ impl SeenIndex {
 
         doc.add_text(self.fields.title, &document.title);
         doc.add_text(self.fields.content, document.content.plain_text());
+        doc.add_date(self.fields.time, DateTime::from_utc(document.time));
         doc.add_bytes(self.fields.uuid, document.uuid.into_bytes());
         doc.add_json_object(self.fields.meta, meta);
 

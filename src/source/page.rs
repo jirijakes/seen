@@ -7,6 +7,7 @@ use miette::Diagnostic;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use thiserror::Error;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::document::*;
@@ -44,6 +45,7 @@ impl Prepare for Page {
         metadata: HashMap<String, Value>,
         options: &SeenOptions,
         preferences: Option<Preferences>,
+        time: OffsetDateTime,
     ) -> Document {
         let mut metadata = metadata;
 
@@ -77,6 +79,7 @@ impl Prepare for Page {
             title: title.unwrap(),
             url: self.url.clone(),
             uuid: Uuid::new_v4(),
+            time,
             content: Content::WebPage {
                 text: readable.text,
                 rich_text: Some(md),
