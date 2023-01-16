@@ -25,23 +25,14 @@ async fn main() -> Result<()> {
         }
         Command::Get(Get { uuid: id }) => {
             if let Ok(doc) = seen.get(&id).await {
-                println!("{}", doc.title);
-                println!();
-                println!("{}", doc.url);
-                println!();
-                println!("{:?}", doc.metadata);
-                println!();
                 match doc.content {
-                    Content::WebPage { text, rich_text } => {
-                        // println!("{}", textwrap::fill(&text, 70));
-                        println!("{}", text);
-                        println!("\n\n-----------\n\n");
-                        termimad::print_text(&rich_text.unwrap());
+                    Content::WebPage { rich_text, .. } => {
+                        let content = format!("# {}\n\n{}", doc.title, rich_text.unwrap());
+                        display_content(&content).unwrap();
                     }
                 };
-                // println!("{}", doc.content);
             } else {
-                println!("Nada.");
+                println!("Not found.");
             }
         }
         Command::Search(Search { query }) => {
@@ -86,12 +77,12 @@ async fn main() -> Result<()> {
                         }
                     }
 
-                    // table.add_row(vec![
-                    //     Cell::new("UUID")
-                    //         .add_attribute(Attribute::Bold)
-                    //         .set_alignment(CellAlignment::Right),
-                    //     Cell::new(&hit.uuid.to_string()),
-                    // ]);
+                    table.add_row(vec![
+                        Cell::new("UUID")
+                            .add_attribute(Attribute::Bold)
+                            .set_alignment(CellAlignment::Right),
+                        Cell::new(hit.uuid.to_string()),
+                    ]);
 
                     // table.add_row(vec![
                     //     Cell::new("Score")
@@ -216,4 +207,67 @@ enum Command {
     /// Manage settings.
     #[clap(subcommand)]
     Settings(Settings),
+}
+
+use std::io::{stdout, Write};
+use termimad::crossterm::{
+    cursor::{Hide, Show},
+    event::{self, Event, KeyCode::*, KeyEvent},
+    queue,
+    style::Color::*,
+    terminal::{self, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use termimad::*;
+
+//
+// Taken from termimad examples. Thank you!
+//
+
+fn display_content(content: &str) -> Result<(), Error> {
+    let skin = make_skin();
+    let mut w = stdout(); // we could also have used stderr
+    queue!(w, EnterAlternateScreen)?;
+    terminal::enable_raw_mode()?;
+    queue!(w, Hide)?; // hiding the cursor
+    let mut view = MadView::from(content.to_owned(), view_area(), skin);
+    loop {
+        view.write_on(&mut w)?;
+        w.flush()?;
+        match event::read() {
+            Ok(Event::Key(KeyEvent { code, .. })) => match code {
+                Up => view.try_scroll_lines(-1),
+                Down => view.try_scroll_lines(1),
+                PageUp => view.try_scroll_pages(-1),
+                PageDown => view.try_scroll_pages(1),
+                _ => break,
+            },
+            Ok(Event::Resize(..)) => {
+                queue!(w, Clear(ClearType::All))?;
+                view.resize(&view_area());
+            }
+            _ => {}
+        }
+    }
+    terminal::disable_raw_mode()?;
+    queue!(w, Show)?; // we must restore the cursor
+    queue!(w, LeaveAlternateScreen)?;
+    w.flush()?;
+    Ok(())
+}
+
+fn view_area() -> Area {
+    let mut area = Area::full_screen();
+    area.pad_for_max_width(100);
+    area
+}
+
+fn make_skin() -> MadSkin {
+    let mut skin = MadSkin::default();
+    skin.table.align = Alignment::Center;
+    skin.set_headers_fg(AnsiValue(178));
+    skin.bold.set_fg(Yellow);
+    skin.italic.set_fg(Magenta);
+    skin.scrollbar.thumb.set_fg(AnsiValue(178));
+    skin.code_block.align = Alignment::Center;
+    skin
 }
