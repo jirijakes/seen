@@ -6,7 +6,6 @@ use miette::Diagnostic;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use thiserror::Error;
-use time::format_description::well_known::Rfc3339;
 use time::macros::format_description;
 use time::OffsetDateTime;
 use tokio::fs::{read_dir, read_to_string, File};
@@ -30,12 +29,12 @@ pub enum RecoverError {
 
 /// Store a copy of the source information for archival purposes.
 /// Such a store can be later re-indexed by TODO.
-pub async fn archive_source(seen: &Seen, source: &Source, metadata: &HashMap<String, Value>) {
-    let time = OffsetDateTime::now_local()
-        .unwrap_or_else(|_| OffsetDateTime::now_utc())
-        .format(&Rfc3339)
-        .ok();
-
+pub async fn archive_source(
+    seen: &Seen,
+    source: &Source,
+    metadata: &HashMap<String, Value>,
+    time: OffsetDateTime,
+) {
     let json = json!({
          "metadata": metadata,
          "source": source,
@@ -87,7 +86,6 @@ pub async fn recover_source(seen: &Seen, file: impl AsRef<Path>) -> Result<(), R
 
     match archived.source {
         ArchivedSource::Page(page) => {
-            // 1. Get preferences for URL (glob?)
             let url_preferences: Option<UrlPreferences> =
                 url_preferences::for_url(&page.url, seen).await;
 

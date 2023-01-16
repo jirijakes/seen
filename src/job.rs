@@ -46,15 +46,17 @@ pub async fn go(seen: &Seen, url: Uri, tags: &[String]) -> Result<(), JobError> 
         None => Ok(None),
     }?;
 
+    let time = OffsetDateTime::now_utc();
+
     let source = download_source(seen, &url, preferences.as_ref()).await?;
-    archive_source(seen, &source, &default_metadata).await;
+    archive_source(seen, &source, &default_metadata, time).await;
     index_source(
         seen,
         &url,
         source,
         preferences,
         default_metadata,
-        OffsetDateTime::now_utc(),
+        time,
         tags,
     )
     .await
