@@ -45,8 +45,8 @@ pub async fn go(seen: &Seen, url: Uri, tags: &[String]) -> Result<(), JobError> 
         None => Ok(None),
     }?;
 
-    let source = download_source(seen, &url, preferences.as_ref(), &default_metadata).await?;
-
+    let source = download_source(seen, &url, preferences.as_ref()).await?;
+    archive_source(seen, &source, &default_metadata).await;
     index_source(seen, &url, source, preferences, default_metadata, tags).await
 }
 
@@ -54,7 +54,6 @@ pub async fn download_source(
     seen: &Seen,
     url: &Uri,
     preferences: Option<&Preferences>,
-    default_metadata: &HashMap<String, Value>,
 ) -> Result<Source, JobError> {
     let response = seen.http_client.get_async(url).await?;
 
@@ -70,8 +69,6 @@ pub async fn download_source(
         Some(SourceType::Video) => todo!(),
         None => Err(JobError::MimeNotSupported(effective_ct))?,
     };
-
-    archive_source(seen, &source, default_metadata).await;
 
     Ok(source)
 }
