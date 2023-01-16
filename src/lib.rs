@@ -78,13 +78,13 @@ impl Seen {
         let pool = SqlitePoolOptions::new()
             .max_connections(5)
             .connect_with(
-                SqliteConnectOptions::from_str("sqlite://seen.db")
-                    .unwrap()
+                SqliteConnectOptions::new()
+                    .filename(dirs.data_dir().join("seen.db"))
                     .create_if_missing(true),
             )
             .await?;
 
-        let index = Rc::new(SeenIndex::new("index")?);
+        let index = Rc::new(SeenIndex::new(dirs.data_dir().join("index"))?);
 
         Ok(Seen {
             http_client,
