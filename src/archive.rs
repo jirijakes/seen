@@ -96,6 +96,12 @@ pub async fn recover_source(seen: &Seen, file: impl AsRef<Path>) -> Result<(), R
             }
             .unwrap();
 
+            let tags = archived
+                .metadata
+                .get("tag")
+                .and_then(|t| serde_json::from_value::<Vec<String>>(t.clone()).ok())
+                .unwrap_or_default();
+
             crate::job::index_source(
                 seen,
                 &page.url.clone(),
@@ -103,7 +109,7 @@ pub async fn recover_source(seen: &Seen, file: impl AsRef<Path>) -> Result<(), R
                 preferences,
                 archived.metadata,
                 archived.time,
-                &[],
+                &tags,
             )
             .await
             .unwrap()

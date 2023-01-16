@@ -139,7 +139,7 @@ pub async fn index_source(
     Ok(())
 }
 
-/// Extract contenty type from given HTTP response.
+/// Extract content type from given HTTP response.
 fn content_type<B>(response: &Response<B>) -> Result<Mime, JobError> {
     let ct = response
         .headers()
