@@ -66,11 +66,10 @@ impl Seen {
             SeenError::Options("Could not load directory for configuration files".to_string())
         })?;
 
-        let options = read_to_string(dirs.config_dir().join("config.toml"))
-            .await
-            .map_err(|e| SeenError::Options(e.to_string()))?;
-        let options: SeenOptions =
-            toml::from_str(&options).map_err(|e| SeenError::Options(e.to_string()))?;
+        let options = match read_to_string(dirs.config_dir().join("config.toml")).await {
+            Ok(s) => toml::from_str(&s).map_err(|e| SeenError::Options(e.to_string())),
+            Err(_) => Ok(Default::default()),
+        }?;
 
         let http_client = HttpClient::new()?;
         let pool = SqlitePoolOptions::new()
@@ -154,7 +153,7 @@ WHERE documents.uuid = ?"#,
         self.options
             .archive_dir
             .clone()
-            .unwrap_or(self.dirs.data_dir().join("archive"))
+            .unwrap_or_else(|| self.dirs.data_dir().join("archive"))
     }
 }
 

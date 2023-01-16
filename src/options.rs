@@ -6,7 +6,7 @@ use crate::extract::Extraction;
 use crate::url_preferences::Preferences;
 
 /// Configuration options of Seen.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct SeenOptions {
     /// Directory to store archived files.
     pub archive_dir: Option<PathBuf>,
