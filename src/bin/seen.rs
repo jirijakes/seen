@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 use comfy_table::{presets, Attribute, Cell, CellAlignment, Table};
@@ -7,7 +7,6 @@ use isahc::http::Uri;
 use miette::Result;
 use seen::document::Content;
 use seen::Seen;
-use sqlx::migrate::Migrator;
 use uuid::Uuid;
 
 #[tokio::main]
@@ -16,8 +15,7 @@ async fn main() -> Result<()> {
 
     let seen = Seen::new(&args.config).await?;
 
-    let migrator = Migrator::new(Path::new("migrations")).await.unwrap();
-    migrator.run(&seen.pool).await.unwrap();
+    sqlx::migrate!().run(&seen.pool).await.unwrap();
 
     match args.command {
         Command::Add(Add { url, tags }) => {
