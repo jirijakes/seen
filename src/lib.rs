@@ -34,13 +34,14 @@ use crate::index::SeenIndex;
 #[derive(Debug)]
 pub struct Seen {
     /// HTTP client.
-    pub http_client: HttpClient,
+    http_client: HttpClient,
     /// Sqlite pol.
-    pub pool: SqlitePool,
+    pool: SqlitePool,
     /// Full-text index.
-    pub index: Rc<SeenIndex>,
+    index: Rc<SeenIndex>,
     /// Project directories.
     dirs: ProjectDirs,
+    /// Configuration options of the seesion.
     options: SeenOptions,
 }
 
@@ -81,6 +82,8 @@ impl Seen {
             )
             .await?;
 
+        sqlx::migrate!().run(&pool).await.unwrap();
+
         let index = Rc::new(SeenIndex::new(dirs.data_dir().join("index"))?);
 
         Ok(Seen {
@@ -92,8 +95,14 @@ impl Seen {
         })
     }
 
-    async fn fill_content(&self, document: PartialDocument) -> Result<Document, SeenError> {
-        match document.content_type {
+    /// Search among documents using a tantivy query.
+    pub fn search(&self, query: &str) -> Result<Vec<index::SearchHit>, index::SearchError> {
+        self.index.search(query)
+    }
+
+    /// Obtain content for given `partial_document` and return all as one [`Document`].
+    async fn fill_content(&self, partial_document: PartialDocument) -> Result<Document, SeenError> {
+        match partial_document.content_type {
             ContentType::WebPage => {
                 let c = sqlx::query!(
                     r#"
@@ -101,21 +110,21 @@ SELECT *
 FROM webpage
 LEFT JOIN documents ON webpage.document = documents.id
 WHERE documents.uuid = ?"#,
-                    document.uuid
+                    partial_document.uuid
                 )
                 .fetch_one(&self.pool)
                 .await?;
 
                 Ok(Document {
-                    title: document.title,
-                    url: document.url.parse().unwrap(),
-                    uuid: document.uuid,
-                    time: document.time,
+                    title: partial_document.title,
+                    url: partial_document.url.parse().unwrap(),
+                    uuid: partial_document.uuid,
+                    time: partial_document.time,
                     content: Content::WebPage {
                         text: c.plain,
                         rich_text: c.rich,
                     },
-                    metadata: serde_json::from_str(&document.metadata).unwrap(),
+                    metadata: serde_json::from_str(&partial_document.metadata).unwrap(),
                 })
             }
         }

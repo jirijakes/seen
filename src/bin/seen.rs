@@ -15,8 +15,6 @@ async fn main() -> Result<()> {
 
     let seen = Seen::new(&args.config).await?;
 
-    sqlx::migrate!().run(&seen.pool).await.unwrap();
-
     match args.command {
         Command::Add(Add { url, tags }) => {
             seen::job::go(&seen, url, &tags).await?;
@@ -34,7 +32,7 @@ async fn main() -> Result<()> {
             }
         }
         Command::Search(Search { query }) => {
-            futures::stream::iter(seen.index.search(&query)?)
+            futures::stream::iter(seen.search(&query)?)
                 .filter_map(|hit| async { seen.get(&hit.uuid).await.map(|doc| (hit, doc)).ok() })
                 .for_each(|(hit, document)| async move {
                     let mut table = Table::new();
