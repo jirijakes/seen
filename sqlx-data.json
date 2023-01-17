@@ -1,0 +1,203 @@
+{
+  "db": "SQLite",
+  "5c6c970ef427a4f3c0a2bd3854592bf22a30f67d9ceb43d0916884698117b9b4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "uuid",
+          "ordinal": 1,
+          "type_info": "Blob"
+        },
+        {
+          "name": "url",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "time",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "title",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "content_type",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "metadata",
+          "ordinal": 6,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id, uuid, url, time, title, content_type, metadata FROM documents WHERE uuid = ?"
+  },
+  "840a034f653cada8dd33b12e4aae25ffa7bdd0ac1dc64d40eb4cf616936a8f84": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 3
+      }
+    },
+    "query": "INSERT INTO webpage (plain, rich, document) VALUES (?, ?, ?)"
+  },
+  "8a7cf63f1dcb9dfb47d177b0c5687963b8cf3b68a9e5bc55167625f3b2d758d8": {
+    "describe": {
+      "columns": [
+        {
+          "name": "plain",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "rich",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "document",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "id",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "uuid",
+          "ordinal": 4,
+          "type_info": "Blob"
+        },
+        {
+          "name": "url",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "time",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "title",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "metadata",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "content_type",
+          "ordinal": 9,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "\nSELECT *\nFROM webpage\nLEFT JOIN documents ON webpage.document = documents.id\nWHERE documents.uuid = ?"
+  },
+  "a603dce46a30cf2040d9fdc9155b90b3af545668e1acef63e51001d509569ccd": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 6
+      }
+    },
+    "query": "INSERT INTO documents (uuid, url, title, time, metadata, content_type) VALUES (?, ?, ?, ?, ?, ?)"
+  },
+  "bff1c462e563e9893286b327c9f126ae1085d6edf108deecc98672004c163179": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "uuid",
+          "ordinal": 1,
+          "type_info": "Blob"
+        },
+        {
+          "name": "url",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "time",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "title",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "content_type",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "metadata",
+          "ordinal": 6,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 0
+      }
+    },
+    "query": "SELECT id, uuid, url, time, title, content_type, metadata FROM documents"
+  }
+}
