@@ -73,7 +73,8 @@ impl Prepare for Page {
             metadata.insert("host".to_string(), serde_json::to_value(host).unwrap());
         }
 
-        let md = futures::executor::block_on(crate::convert::md::html_to_md(&readable.content));
+        let md =
+            futures::executor::block_on(crate::convert::md::html_to_md(&readable.content)).ok();
 
         Document {
             title: title.unwrap(),
@@ -82,7 +83,7 @@ impl Prepare for Page {
             time,
             content: Content::WebPage {
                 text: readable.text,
-                rich_text: Some(md),
+                rich_text: md,
             },
             metadata,
         }

@@ -33,7 +33,7 @@ pub enum JobError {
     IndexError(#[from] IndexError),
 }
 
-pub async fn go(seen: &Seen, url: Uri, tags: &[String]) -> Result<(), JobError> {
+pub async fn go(seen: &Seen, url: Uri, tags: &[String], archive: bool) -> Result<(), JobError> {
     let default_metadata =
         HashMap::from([("tag".to_string(), serde_json::to_value(tags).unwrap())]);
 
@@ -49,7 +49,9 @@ pub async fn go(seen: &Seen, url: Uri, tags: &[String]) -> Result<(), JobError> 
     let time = OffsetDateTime::now_utc();
 
     let source = download_source(seen, &url, preferences.as_ref()).await?;
-    archive_source(seen, &source, &default_metadata, time).await;
+    if archive {
+        archive_source(seen, &source, &default_metadata, time).await;
+    }
     index_source(
         seen,
         &url,

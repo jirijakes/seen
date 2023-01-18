@@ -16,15 +16,23 @@ async fn main() -> Result<()> {
     let seen = Seen::new(&args.config).await?;
 
     match args.command {
-        Command::Add(Add { url, tags }) => {
-            seen::job::go(&seen, url, &tags).await?;
+        Command::Add(Add {
+            url,
+            tags,
+            no_archive,
+        }) => {
+            seen::job::go(&seen, url, &tags, !no_archive).await?;
         }
         Command::Get(Get { uuid: id }) => {
             if let Ok(doc) = seen.get(&id).await {
                 match doc.content {
-                    Content::WebPage { rich_text, .. } => {
-                        let content = format!("# {}\n\n{}", doc.title, rich_text.unwrap());
-                        display_content(&content).unwrap();
+                    Content::WebPage { text, rich_text } => {
+                        if let Some(content) = rich_text {
+                            let content = format!("# {}\n\n{}", doc.title, content);
+                            display_content(&content).unwrap();
+                        } else {
+                            println!("{}\n\n{}", doc.title, text);
+                        }
                     }
                 };
             } else {
@@ -151,6 +159,10 @@ struct Add {
     /// Add tag (can be used repeatedly)
     #[arg(short, long = "tag", id = "TAG")]
     tags: Vec<String>,
+
+    /// Do not archive this source.
+    #[arg(long, default_value = "false")]
+    no_archive: bool,
 }
 
 #[derive(Parser, Debug)]
@@ -206,12 +218,14 @@ enum Command {
 }
 
 use std::io::{stdout, Write};
-use termimad::crossterm::{
-    cursor::{Hide, Show},
-    event::{self, Event, KeyCode::*, KeyEvent},
-    queue,
-    style::Color::*,
-    terminal::{self, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
+
+use termimad::crossterm::cursor::{Hide, Show};
+use termimad::crossterm::event::KeyCode::*;
+use termimad::crossterm::event::{self, Event, KeyEvent};
+use termimad::crossterm::queue;
+use termimad::crossterm::style::Color::*;
+use termimad::crossterm::terminal::{
+    self, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use termimad::*;
 

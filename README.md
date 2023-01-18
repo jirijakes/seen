@@ -29,6 +29,10 @@ Only basic form of the features is available now.
 
 ## Try now
 
+Current requirements:
+
+ - pandoc has to be installed
+
 ```
 fossil clone https://jirijakes.com/code/seen
 cd seen
