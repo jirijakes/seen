@@ -1,13 +1,16 @@
 use std::collections::HashMap;
 
+use indicatif::*;
 use isahc::http::header::CONTENT_TYPE;
 use isahc::http::Uri;
-use isahc::Response;
+use isahc::{Metrics, Response, ResponseExt};
 use miette::Diagnostic;
 use mime::Mime;
 use serde_json::Value;
 use thiserror::Error;
 use time::OffsetDateTime;
+use tokio::sync::oneshot;
+use tokio::time::{interval, Duration};
 
 use crate::archive::archive_source;
 use crate::document::{Content, Prepare};
@@ -33,7 +36,13 @@ pub enum JobError {
     IndexError(#[from] IndexError),
 }
 
-pub async fn go(seen: &Seen, url: Uri, tags: &[String], archive: bool) -> Result<(), JobError> {
+pub async fn go(
+    seen: &Seen,
+    url: Uri,
+    tags: &[String],
+    archive: bool,
+    dry_run: bool,
+) -> Result<(), JobError> {
     let default_metadata =
         HashMap::from([("tag".to_string(), serde_json::to_value(tags).unwrap())]);
 
@@ -46,28 +55,69 @@ pub async fn go(seen: &Seen, url: Uri, tags: &[String], archive: bool) -> Result
         None => Ok(None),
     }?;
 
+    let multi = MultiProgress::new();
+    let sty = ProgressStyle::with_template("{bar:40.green/yellow} {pos:>7}/{len:7}").unwrap();
+
+    let total_pb = multi.add(ProgressBar::new(5));
+    total_pb.set_style(sty.clone());
+    total_pb.tick();
+
+    let download_pb = multi.add(ProgressBar::new(0));
+    download_pb.set_style(sty.clone());
+
     let time = OffsetDateTime::now_utc();
 
-    let source = download_source(seen, &url, preferences.as_ref()).await?;
-    if archive {
+    total_pb.inc(1);
+    let source = download_source(seen, &url, preferences.as_ref(), download_pb.clone()).await?;
+    multi
+        .println(format!(
+            "Source download finished in {:?}.",
+            download_pb.elapsed()
+        ))
+        .unwrap();
+
+    if archive && !dry_run {
         archive_source(seen, &source, &default_metadata, time).await;
     }
-    index_source(
-        seen,
-        &url,
-        source,
-        preferences,
-        default_metadata,
-        time,
-        tags,
-    )
-    .await
+
+    let res = if !dry_run {
+        index_source(
+            seen,
+            &url,
+            source,
+            preferences,
+            default_metadata,
+            time,
+            tags,
+        )
+        .await
+    } else {
+        Ok(())
+    };
+
+    total_pb.finish_and_clear();
+    multi.println("Done.").unwrap();
+    multi.clear().unwrap();
+
+    res
+}
+
+async fn download_progress(m: Metrics, pb: ProgressBar) {
+    let mut int = interval(Duration::from_millis(10));
+
+    loop {
+        int.tick().await;
+        let (pos, tot) = m.download_progress();
+        pb.set_length(tot);
+        pb.set_position(pos);
+    }
 }
 
 pub async fn download_source(
     seen: &Seen,
     url: &Uri,
     preferences: Option<&Preferences>,
+    progress_bar: ProgressBar,
 ) -> Result<Source, JobError> {
     let response = seen.http_client.get_async(url).await?;
 
@@ -77,8 +127,24 @@ pub async fn download_source(
     let ct = preferences.as_ref().and_then(|s| s.content_type.clone());
     let effective_ct = ct.unwrap_or(content_type(&response)?);
 
+    let (downloaded_signal, downloaded) = oneshot::channel::<()>();
+
+    if let Some(m) = response.metrics().cloned() {
+        tokio::spawn(async move {
+            tokio::select! {
+                _ = downloaded => {
+                    progress_bar.finish_and_clear();
+                }
+                _ = download_progress(m.clone(), progress_bar.clone()) => { }
+            }
+        });
+    }
+
     let source: Source = match SourceType::from_mime(&effective_ct) {
-        Some(SourceType::Page) => make_page(response).await.map(Source::Page).unwrap(),
+        Some(SourceType::Page) => make_page(response, downloaded_signal)
+            .await
+            .map(Source::Page)
+            .unwrap(),
         Some(SourceType::Image) => todo!(),
         Some(SourceType::Video) => todo!(),
         None => Err(JobError::MimeNotSupported(effective_ct))?,
