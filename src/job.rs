@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use indicatif::*;
 use isahc::http::header::CONTENT_TYPE;
 use isahc::http::Uri;
 use isahc::{Metrics, Response, ResponseExt};
@@ -54,15 +55,32 @@ pub async fn go(
         None => Ok(None),
     }?;
 
+    let multi = MultiProgress::new();
+    let sty = ProgressStyle::with_template("{bar:40.green/yellow} {pos:>7}/{len:7}").unwrap();
+
+    let total_pb = multi.add(ProgressBar::new(5));
+    total_pb.set_style(sty.clone());
+    total_pb.tick();
+
+    let download_pb = multi.add(ProgressBar::new(0));
+    download_pb.set_style(sty.clone());
+
     let time = OffsetDateTime::now_utc();
 
-    let source = download_source(seen, &url, preferences.as_ref()).await?;
+    total_pb.inc(1);
+    let source = download_source(seen, &url, preferences.as_ref(), download_pb.clone()).await?;
+    multi
+        .println(format!(
+            "Source download finished in {:?}.",
+            download_pb.elapsed()
+        ))
+        .unwrap();
 
     if archive && !dry_run {
         archive_source(seen, &source, &default_metadata, time).await;
     }
 
-    if !dry_run {
+    let res = if !dry_run {
         index_source(
             seen,
             &url,
@@ -75,15 +93,23 @@ pub async fn go(
         .await
     } else {
         Ok(())
-    }
+    };
+
+    total_pb.finish_and_clear();
+    multi.println("Done.").unwrap();
+    multi.clear().unwrap();
+
+    res
 }
 
-async fn download_progress(m: Metrics) {
+async fn download_progress(m: Metrics, pb: ProgressBar) {
     let mut int = interval(Duration::from_millis(10));
 
     loop {
         int.tick().await;
-        println!("{:?}", m);
+        let (pos, tot) = m.download_progress();
+        pb.set_length(tot);
+        pb.set_position(pos);
     }
 }
 
@@ -91,6 +117,7 @@ pub async fn download_source(
     seen: &Seen,
     url: &Uri,
     preferences: Option<&Preferences>,
+    progress_bar: ProgressBar,
 ) -> Result<Source, JobError> {
     let response = seen.http_client.get_async(url).await?;
 
@@ -106,12 +133,9 @@ pub async fn download_source(
         tokio::spawn(async move {
             tokio::select! {
                 _ = downloaded => {
-                    println!("{:?}", m);
-                    println!("A");
+                    progress_bar.finish_and_clear();
                 }
-                _ = download_progress(m.clone()) => {
-                    println!("B");
-                }
+                _ = download_progress(m.clone(), progress_bar.clone()) => { }
             }
         });
     }

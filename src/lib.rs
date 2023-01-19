@@ -73,7 +73,10 @@ impl Seen {
             Err(_) => Ok(Default::default()),
         }?;
 
-        let http_client = HttpClient::builder().metrics(true).build()?;
+        let http_client = HttpClient::builder()
+            .metrics(true)
+            .max_download_speed(1024)
+            .build()?;
         let pool = SqlitePoolOptions::new()
             .max_connections(5)
             .connect_with(
