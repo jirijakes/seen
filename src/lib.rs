@@ -18,6 +18,7 @@ use std::rc::Rc;
 use directories::ProjectDirs;
 use futures::{StreamExt, TryStreamExt};
 use index::IndexError;
+use isahc::prelude::Configurable;
 use isahc::HttpClient;
 use miette::{Diagnostic, Result};
 use options::SeenOptions;
@@ -72,7 +73,7 @@ impl Seen {
             Err(_) => Ok(Default::default()),
         }?;
 
-        let http_client = HttpClient::new()?;
+        let http_client = HttpClient::builder().metrics(true).build()?;
         let pool = SqlitePoolOptions::new()
             .max_connections(5)
             .connect_with(

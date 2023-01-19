@@ -31,10 +31,15 @@ pub struct Page {
 pub enum PageError {}
 
 /// Turn response into a [`Page`] using given `extract`.
-pub async fn make_page(mut res: Response<AsyncBody>) -> Result<Page, PageError> {
+pub async fn make_page(
+    mut res: Response<AsyncBody>,
+    downloaded_signal: tokio::sync::oneshot::Sender<()>,
+) -> Result<Page, PageError> {
     let url = res.effective_uri().unwrap().clone();
     let headers = res.headers().clone();
     let body = res.text().await.unwrap();
+
+    downloaded_signal.send(()).expect("AAAAA");
 
     Ok(Page { headers, body, url })
 }

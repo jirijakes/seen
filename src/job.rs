@@ -2,12 +2,14 @@ use std::collections::HashMap;
 
 use isahc::http::header::CONTENT_TYPE;
 use isahc::http::Uri;
-use isahc::Response;
+use isahc::{Metrics, Response, ResponseExt};
 use miette::Diagnostic;
 use mime::Mime;
 use serde_json::Value;
 use thiserror::Error;
 use time::OffsetDateTime;
+use tokio::sync::oneshot;
+use tokio::time::{interval, Duration};
 
 use crate::archive::archive_source;
 use crate::document::{Content, Prepare};
@@ -33,7 +35,13 @@ pub enum JobError {
     IndexError(#[from] IndexError),
 }
 
-pub async fn go(seen: &Seen, url: Uri, tags: &[String], archive: bool) -> Result<(), JobError> {
+pub async fn go(
+    seen: &Seen,
+    url: Uri,
+    tags: &[String],
+    archive: bool,
+    dry_run: bool,
+) -> Result<(), JobError> {
     let default_metadata =
         HashMap::from([("tag".to_string(), serde_json::to_value(tags).unwrap())]);
 
@@ -49,19 +57,34 @@ pub async fn go(seen: &Seen, url: Uri, tags: &[String], archive: bool) -> Result
     let time = OffsetDateTime::now_utc();
 
     let source = download_source(seen, &url, preferences.as_ref()).await?;
-    if archive {
+
+    if archive && !dry_run {
         archive_source(seen, &source, &default_metadata, time).await;
     }
-    index_source(
-        seen,
-        &url,
-        source,
-        preferences,
-        default_metadata,
-        time,
-        tags,
-    )
-    .await
+
+    if !dry_run {
+        index_source(
+            seen,
+            &url,
+            source,
+            preferences,
+            default_metadata,
+            time,
+            tags,
+        )
+        .await
+    } else {
+        Ok(())
+    }
+}
+
+async fn download_progress(m: Metrics) {
+    let mut int = interval(Duration::from_millis(10));
+
+    loop {
+        int.tick().await;
+        println!("{:?}", m);
+    }
 }
 
 pub async fn download_source(
@@ -77,8 +100,27 @@ pub async fn download_source(
     let ct = preferences.as_ref().and_then(|s| s.content_type.clone());
     let effective_ct = ct.unwrap_or(content_type(&response)?);
 
+    let (downloaded_signal, downloaded) = oneshot::channel::<()>();
+
+    if let Some(m) = response.metrics().cloned() {
+        tokio::spawn(async move {
+            tokio::select! {
+                _ = downloaded => {
+                    println!("{:?}", m);
+                    println!("A");
+                }
+                _ = download_progress(m.clone()) => {
+                    println!("B");
+                }
+            }
+        });
+    }
+
     let source: Source = match SourceType::from_mime(&effective_ct) {
-        Some(SourceType::Page) => make_page(response).await.map(Source::Page).unwrap(),
+        Some(SourceType::Page) => make_page(response, downloaded_signal)
+            .await
+            .map(Source::Page)
+            .unwrap(),
         Some(SourceType::Image) => todo!(),
         Some(SourceType::Video) => todo!(),
         None => Err(JobError::MimeNotSupported(effective_ct))?,

@@ -30,7 +30,7 @@ termimad = "0.20.6"
 textwrap = "0.16.0"
 thiserror = "1.0.38"
 time = { version = "0.3.17", features = ["macros", "std", "formatting", "local-offset", "serde-human-readable"] }
-tokio = { version = "1.24.1", features = ["full"] }
+tokio = { version = "1.24.2", features = ["full"] }
 tokio-stream = { version = "0.1.11", features = ["fs"] }
 toml = "0.5.10"
 typetag = "0.2.5"

@@ -20,8 +20,9 @@ async fn main() -> Result<()> {
             url,
             tags,
             no_archive,
+            dry_run,
         }) => {
-            seen::job::go(&seen, url, &tags, !no_archive).await?;
+            seen::job::go(&seen, url, &tags, !no_archive, dry_run).await?;
         }
         Command::Get(Get { uuid: id }) => {
             if let Ok(doc) = seen.get(&id).await {
@@ -163,6 +164,10 @@ struct Add {
     /// Do not archive this source.
     #[arg(long, default_value = "false")]
     no_archive: bool,
+
+    /// Do not index or archive anything.
+    #[arg(short = 'n', long, default_value = "false")]
+    dry_run: bool,
 }
 
 #[derive(Parser, Debug)]
