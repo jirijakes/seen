@@ -58,7 +58,7 @@ pub async fn go(
     let multi = MultiProgress::new();
     let sty = ProgressStyle::with_template("{bar:40.green/yellow} {pos:>7}/{len:7}").unwrap();
 
-    let total_pb = multi.add(ProgressBar::new(5));
+    let total_pb = multi.add(ProgressBar::new(3));
     total_pb.set_style(sty.clone());
     total_pb.tick();
 
@@ -75,13 +75,26 @@ pub async fn go(
             download_pb.elapsed()
         ))
         .unwrap();
+    total_pb.finish_and_clear();
 
     if archive && !dry_run {
+        let archive_pb = multi.add(ProgressBar::new(100));
+        archive_pb.set_style(sty.clone());
+        archive_pb.set_position(0);
+
         archive_source(seen, &source, &default_metadata, time).await;
+
+        archive_pb.set_position(100);
+        archive_pb.finish_and_clear();
+        multi.println("Archived.").unwrap();
     }
 
     let res = if !dry_run {
-        index_source(
+        let index_pb = multi.add(ProgressBar::new(100));
+        index_pb.set_style(sty);
+        index_pb.set_position(0);
+
+        let res = index_source(
             seen,
             &url,
             source,
@@ -90,18 +103,26 @@ pub async fn go(
             time,
             tags,
         )
-        .await
+        .await;
+
+        index_pb.set_position(100);
+        index_pb.finish_and_clear();
+        multi.println("Indexed.").unwrap();
+
+        res
     } else {
         Ok(())
     };
 
-    total_pb.finish_and_clear();
     multi.println("Done.").unwrap();
     multi.clear().unwrap();
 
     res
 }
 
+/// Regularly checks given download metrics and updates progress bar accordingly.
+/// It is expected to be cancelled externally once the download has finished,
+/// e. g. by [`tokio::select!`].
 async fn download_progress(m: Metrics, pb: ProgressBar) {
     let mut int = interval(Duration::from_millis(10));
 
