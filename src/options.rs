@@ -22,12 +22,6 @@ pub struct SeenOptions {
     pub extract: Extraction,
 }
 
-pub fn extract<'a>(
-    options: &'a SeenOptions,
-    preferences: &'a Option<Preferences>,
-) -> &'a Extraction {
-    preferences
-        .as_ref()
-        .and_then(|p| p.extract.as_ref())
-        .unwrap_or(&options.extract)
+pub fn extract<'a>(options: &'a SeenOptions, preferences: &'a Preferences) -> &'a Extraction {
+    preferences.extract.as_ref().unwrap_or(&options.extract)
 }

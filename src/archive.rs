@@ -91,8 +91,8 @@ pub async fn recover_source(seen: &Seen, file: impl AsRef<Path>) -> Result<(), R
 
             let preferences = match url_preferences {
                 Some(UrlPreferences::Blacklist) => Err(JobError::Blacklisted),
-                Some(UrlPreferences::Preferences(s)) => Ok(Some(s)),
-                None => Ok(None),
+                Some(UrlPreferences::Preferences(s)) => Ok(s),
+                None => Ok(Default::default()),
             }
             .unwrap();
 

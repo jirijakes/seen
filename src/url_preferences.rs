@@ -10,7 +10,7 @@ use thiserror::Error;
 use crate::extract::Extraction;
 use crate::Seen;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Preferences {
     #[serde(default)]
     #[serde(with = "mime_serde")]

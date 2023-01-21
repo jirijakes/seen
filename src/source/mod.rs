@@ -29,7 +29,7 @@ impl Prepare for Source {
         &self,
         metadata: HashMap<String, Value>,
         options: &SeenOptions,
-        preferences: Option<Preferences>,
+        preferences: Preferences,
         time: OffsetDateTime,
     ) -> Document {
         match self {

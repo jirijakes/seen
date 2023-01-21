@@ -49,7 +49,7 @@ impl Prepare for Page {
         &self,
         metadata: HashMap<String, Value>,
         options: &SeenOptions,
-        preferences: Option<Preferences>,
+        preferences: Preferences,
         time: OffsetDateTime,
     ) -> Document {
         let mut metadata = metadata;

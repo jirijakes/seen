@@ -49,10 +49,10 @@ pub async fn go(
     // 1. Get preferences for URL (glob?)
     let url_preferences: Option<UrlPreferences> = url_preferences::for_url(&url, seen).await;
 
-    let preferences = match url_preferences {
+    let preferences: Preferences = match url_preferences {
         Some(UrlPreferences::Blacklist) => Err(JobError::Blacklisted),
-        Some(UrlPreferences::Preferences(s)) => Ok(Some(s)),
-        None => Ok(None),
+        Some(UrlPreferences::Preferences(s)) => Ok(s),
+        None => Ok(Default::default()),
     }?;
 
     let multi = MultiProgress::new();
@@ -68,7 +68,7 @@ pub async fn go(
     let time = OffsetDateTime::now_utc();
 
     total_pb.inc(1);
-    let source = download_source(seen, &url, preferences.as_ref(), download_pb.clone()).await?;
+    let source = download_source(seen, &url, &preferences, download_pb.clone()).await?;
     multi
         .println(format!(
             "Source download finished in {:?}.",
@@ -137,7 +137,7 @@ async fn download_progress(m: Metrics, pb: ProgressBar) {
 pub async fn download_source(
     seen: &Seen,
     url: &Uri,
-    preferences: Option<&Preferences>,
+    preferences: &Preferences,
     progress_bar: ProgressBar,
 ) -> Result<Source, JobError> {
     let response = seen.http_client.get_async(url).await?;
@@ -145,7 +145,7 @@ pub async fn download_source(
     // TODO: check status
     let _status = response.status();
 
-    let ct = preferences.as_ref().and_then(|s| s.content_type.clone());
+    let ct = preferences.content_type.clone();
     let effective_ct = ct.unwrap_or(content_type(&response)?);
 
     let (downloaded_signal, downloaded) = oneshot::channel::<()>();
@@ -178,7 +178,7 @@ pub async fn index_source(
     seen: &Seen,
     url: &Uri,
     source: Source,
-    preferences: Option<Preferences>,
+    preferences: Preferences,
     default_metadata: HashMap<String, Value>,
     time: OffsetDateTime,
     tags: &[String],
