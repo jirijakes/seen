@@ -1,5 +1,23 @@
 {
   "db": "SQLite",
+  "1e5e7f6c59372ddfa3856b33933be5169e32dbdce43e35fdfd19ea4986721757": {
+    "describe": {
+      "columns": [
+        {
+          "name": "uuid: Uuid",
+          "ordinal": 0,
+          "type_info": "Blob"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT uuid AS \"uuid: Uuid\" FROM documents WHERE url = ?"
+  },
   "5c6c970ef427a4f3c0a2bd3854592bf22a30f67d9ceb43d0916884698117b9b4": {
     "describe": {
       "columns": [
@@ -199,5 +217,15 @@
       }
     },
     "query": "SELECT id, uuid, url, time, title, content_type, metadata FROM documents"
+  },
+  "e0150b31c68c8d638756f4d52a021e736f7563b1983fed201ec4524d3e36c4e9": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "DELETE FROM documents WHERE uuid = ?"
   }
 }

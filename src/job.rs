@@ -11,6 +11,7 @@ use thiserror::Error;
 use time::OffsetDateTime;
 use tokio::sync::oneshot;
 use tokio::time::{interval, Duration};
+use uuid::Uuid;
 
 use crate::archive::archive_source;
 use crate::document::{Content, Prepare};
@@ -18,7 +19,7 @@ use crate::index::IndexError;
 use crate::metadata::Metadata;
 use crate::source::{make_page, Source, SourceType};
 use crate::url_preferences::{self, Preferences, UrlPreferences};
-use crate::Seen;
+use crate::{Seen, SeenError};
 
 pub struct Job;
 
@@ -26,14 +27,24 @@ pub struct Job;
 pub enum JobError {
     #[error("HTTP error.")]
     HttpError(#[from] isahc::Error),
+
     #[error("Content type {0:?} not supported (yet?).")]
     MimeNotSupported(Mime),
+
     #[error("")]
     InvalidResponse,
+
     #[error("Adress was blacklisted")]
     Blacklisted,
+
     #[error("Index error.")]
     IndexError(#[from] IndexError),
+
+    #[error("Database error.")]
+    DatabaseError(#[from] sqlx::Error),
+
+    #[error("Seen error.")]
+    SeenError(#[from] SeenError),
 }
 
 pub async fn go(
@@ -43,6 +54,18 @@ pub async fn go(
     archive: bool,
     dry_run: bool,
 ) -> Result<(), JobError> {
+    let url_s = url.to_string();
+
+    #[rustfmt::skip]
+    let existing: Option<Uuid> =
+        sqlx::query!(
+            r#"SELECT uuid AS "uuid: Uuid" FROM documents WHERE url = ?"#,
+            url_s
+        )
+        .fetch_optional(&seen.pool)
+        .await?
+        .map(|r| r.uuid);
+
     let default_metadata =
         HashMap::from([("tag".to_string(), serde_json::to_value(tags).unwrap())]);
 
@@ -94,6 +117,13 @@ pub async fn go(
         index_pb.set_style(sty);
         index_pb.set_position(0);
 
+        // If a document with the same URL already exists, we are updating it.
+        // Updating with tantivy equals to deleting + inserting again newly.
+        if let Some(uuid) = existing {
+            seen.delete(&uuid).await?;
+        }
+
+        // Index the source.
         let res = index_source(
             seen,
             &url,

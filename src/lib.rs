@@ -146,6 +146,17 @@ WHERE documents.uuid = ?"#,
         .collect()
     }
 
+    /// Delete all documents with the given `uuid` from dataabase and index.
+    pub async fn delete(&self, uuid: &Uuid) -> Result<(), SeenError> {
+        sqlx::query!("DELETE FROM documents WHERE uuid = ?", uuid)
+            .execute(&self.pool)
+            .await?;
+
+        self.index.delete(uuid)?;
+
+        Ok(())
+    }
+
     /// Obtain a complete document by its unique identifier.
     pub async fn get(&self, uuid: &Uuid) -> Result<Document, SeenError> {
         let document = sqlx::query_as_unchecked!(

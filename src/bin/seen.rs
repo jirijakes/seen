@@ -24,6 +24,9 @@ async fn main() -> Result<()> {
         }) => {
             seen::job::go(&seen, url, &tags, !no_archive, dry_run).await?;
         }
+        Command::Delete(Delete { uuid }) => {
+            seen.delete(&uuid).await?;
+        }
         Command::Get(Get { uuid: id }) => {
             if let Ok(doc) = seen.get(&id).await {
                 match doc.content {
@@ -171,6 +174,12 @@ struct Add {
 }
 
 #[derive(Parser, Debug)]
+struct Delete {
+    /// UUID of the document to delete.
+    uuid: Uuid,
+}
+
+#[derive(Parser, Debug)]
 struct Recover {
     /// Directory with archive files.
     dir: Option<PathBuf>,
@@ -209,6 +218,8 @@ pub struct SetSettings {
 enum Command {
     /// Add new URL.
     Add(Add),
+    /// Delete record.
+    Delete(Delete),
     /// Search among documents.
     Search(Search),
     /// Obtain document directly.

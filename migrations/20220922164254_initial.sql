@@ -18,5 +18,5 @@ CREATE TABLE IF NOT EXISTS "webpage" (
        "plain"          TEXT NOT NULL,
        "rich"           TEXT NULL,
        "document"       INTEGER NOT NULL,
-       FOREIGN KEY("document") REFERENCES "documents"("id")
+       FOREIGN KEY("document") REFERENCES "documents"("id") ON DELETE CASCADE
 );
