@@ -54,18 +54,6 @@ pub async fn go(
     archive: bool,
     dry_run: bool,
 ) -> Result<(), JobError> {
-    let url_s = url.to_string();
-
-    #[rustfmt::skip]
-    let existing: Option<Uuid> =
-        sqlx::query!(
-            r#"SELECT uuid AS "uuid: Uuid" FROM documents WHERE url = ?"#,
-            url_s
-        )
-        .fetch_optional(&seen.pool)
-        .await?
-        .map(|r| r.uuid);
-
     let default_metadata =
         HashMap::from([("tag".to_string(), serde_json::to_value(tags).unwrap())]);
 
@@ -116,12 +104,6 @@ pub async fn go(
         let index_pb = multi.add(ProgressBar::new(100));
         index_pb.set_style(sty);
         index_pb.set_position(0);
-
-        // If a document with the same URL already exists, we are updating it.
-        // Updating with tantivy equals to deleting + inserting again newly.
-        if let Some(uuid) = existing {
-            seen.delete(&uuid).await?;
-        }
 
         // Index the source.
         let res = index_source(
@@ -213,6 +195,11 @@ pub async fn index_source(
     time: OffsetDateTime,
     tags: &[String],
 ) -> Result<(), JobError> {
+    // We do not want to index the same URL if it already exists.
+    // Therefore, let's first delete documents bound to this URL if they
+    // already exist
+    delete_existing(seen, url).await?;
+
     let document = source.prepare_document(default_metadata, &seen.options, preferences, time);
 
     let _ = seen.index.index(&document)?;
@@ -256,6 +243,30 @@ pub async fn index_source(
     println!("{q:?} — {:?}", document.uuid);
 
     Ok(())
+}
+
+/// Delete documents coming from `url` if they exist. If no document exists,
+/// nothing happens.
+async fn delete_existing(seen: &Seen, url: &Uri) -> Result<(), JobError> {
+    let url_s = url.to_string();
+
+    #[rustfmt::skip]
+    let existing: Option<Uuid> =
+        sqlx::query!(
+            r#"SELECT uuid AS "uuid: Uuid" FROM documents WHERE url = ?"#,
+            url_s
+        )
+        .fetch_optional(&seen.pool)
+        .await?
+        .map(|r| r.uuid);
+
+    // If a document with the same URL already exists, we are updating it.
+    // Updating with tantivy equals to deleting + inserting again newly.
+    if let Some(uuid) = existing {
+        Ok(seen.delete(&uuid).await?)
+    } else {
+        Ok(())
+    }
 }
 
 /// Extract content type from given HTTP response.
