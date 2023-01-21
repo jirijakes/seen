@@ -15,7 +15,7 @@ pub trait Prepare {
         &self,
         metadata: HashMap<String, Value>,
         options: &SeenOptions,
-        preferences: Preferences,
+        preferences: &Preferences,
         time: OffsetDateTime,
     ) -> Document;
 }

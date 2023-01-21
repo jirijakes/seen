@@ -49,12 +49,12 @@ impl Prepare for Page {
         &self,
         metadata: HashMap<String, Value>,
         options: &SeenOptions,
-        preferences: Preferences,
+        preferences: &Preferences,
         time: OffsetDateTime,
     ) -> Document {
         let mut metadata = metadata;
 
-        let extract = crate::options::extract(options, &preferences);
+        let extract = crate::options::extract(options, preferences);
 
         let html =
             webpage::HTML::from_string(self.body.clone(), Some(self.url.to_string())).unwrap();

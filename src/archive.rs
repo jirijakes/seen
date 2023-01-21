@@ -106,7 +106,7 @@ pub async fn recover_source(seen: &Seen, file: impl AsRef<Path>) -> Result<(), R
                 seen,
                 &page.url.clone(),
                 Source::Page(page),
-                preferences,
+                &preferences,
                 archived.metadata,
                 archived.time,
                 &tags,
