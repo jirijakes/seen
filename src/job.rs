@@ -11,6 +11,7 @@ use thiserror::Error;
 use time::OffsetDateTime;
 use tokio::sync::oneshot;
 use tokio::time::{interval, Duration};
+use uuid::Uuid;
 
 use crate::archive::archive_source;
 use crate::document::{Content, Prepare};
@@ -18,7 +19,7 @@ use crate::index::IndexError;
 use crate::metadata::Metadata;
 use crate::source::{make_page, Source, SourceType};
 use crate::url_preferences::{self, Preferences, UrlPreferences};
-use crate::Seen;
+use crate::{Seen, SeenError};
 
 pub struct Job;
 
@@ -26,14 +27,24 @@ pub struct Job;
 pub enum JobError {
     #[error("HTTP error.")]
     HttpError(#[from] isahc::Error),
+
     #[error("Content type {0:?} not supported (yet?).")]
     MimeNotSupported(Mime),
+
     #[error("")]
     InvalidResponse,
+
     #[error("Adress was blacklisted")]
     Blacklisted,
+
     #[error("Index error.")]
     IndexError(#[from] IndexError),
+
+    #[error("Database error.")]
+    DatabaseError(#[from] sqlx::Error),
+
+    #[error("Seen error.")]
+    SeenError(#[from] SeenError),
 }
 
 pub async fn go(
@@ -94,6 +105,7 @@ pub async fn go(
         index_pb.set_style(sty);
         index_pb.set_position(0);
 
+        // Index the source.
         let res = index_source(
             seen,
             &url,
@@ -183,6 +195,11 @@ pub async fn index_source(
     time: OffsetDateTime,
     tags: &[String],
 ) -> Result<(), JobError> {
+    // We do not want to index the same URL if it already exists.
+    // Therefore, let's first delete documents bound to this URL if they
+    // already exist
+    delete_existing(seen, url).await?;
+
     let document = source.prepare_document(default_metadata, &seen.options, preferences, time);
 
     let _ = seen.index.index(&document)?;
@@ -226,6 +243,30 @@ pub async fn index_source(
     println!("{q:?} — {:?}", document.uuid);
 
     Ok(())
+}
+
+/// Delete documents coming from `url` if they exist. If no document exists,
+/// nothing happens.
+async fn delete_existing(seen: &Seen, url: &Uri) -> Result<(), JobError> {
+    let url_s = url.to_string();
+
+    #[rustfmt::skip]
+    let existing: Option<Uuid> =
+        sqlx::query!(
+            r#"SELECT uuid AS "uuid: Uuid" FROM documents WHERE url = ?"#,
+            url_s
+        )
+        .fetch_optional(&seen.pool)
+        .await?
+        .map(|r| r.uuid);
+
+    // If a document with the same URL already exists, we are updating it.
+    // Updating with tantivy equals to deleting + inserting again newly.
+    if let Some(uuid) = existing {
+        Ok(seen.delete(&uuid).await?)
+    } else {
+        Ok(())
+    }
 }
 
 /// Extract content type from given HTTP response.

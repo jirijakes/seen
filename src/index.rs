@@ -12,7 +12,7 @@ use tantivy::schema::{
 };
 use tantivy::{
     DateOptions, DatePrecision, DateTime, DocAddress, Document as TantivyDocument, Index,
-    IndexReader, IndexWriter, Score, SnippetGenerator, TantivyError,
+    IndexReader, IndexWriter, Score, SnippetGenerator, TantivyError, Term,
 };
 use thiserror::Error;
 use uuid::Uuid;
@@ -164,6 +164,16 @@ impl SeenIndex {
                 // );
             })
             .collect()
+    }
+
+    /// Delete all documents with the given `uuid` from the index.
+    pub fn delete(&self, uuid: &Uuid) -> Result<(), IndexError> {
+        let mut writer = self.writer.borrow_mut();
+        let term = Term::from_field_bytes(self.fields.uuid, &uuid.into_bytes());
+        writer.delete_term(term);
+        writer.commit()?;
+
+        Ok(())
     }
 
     fn highlight(snippet: tantivy::Snippet) -> String {
