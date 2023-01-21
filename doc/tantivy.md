@@ -32,6 +32,19 @@ Document's additional metadata. The field is of type `json`. Currently, the meta
 ``` json
 {
   "tag": ["…", "…"],
-  "host": "…"
+  "host": "…",
+  "indextime": {
+    "daypart": "…",
+    "weekday": "…",
+    "season": "…",
+    "month": "…"
+  }
 }
 ```
+
+Valid values:
+
+- `daypart`: morning, noon, afternoon, evening, night
+- `weekday`: monday, tuesday, wednesday, thursday, friday, saturday, sunday
+- `season`: summer, autumn, winter, spring (at the moment naïve and inaccurate approach, assuming northern hemisphere only)
+- `month`: january, february, march, april, may, june, july, august, september, october, november, december

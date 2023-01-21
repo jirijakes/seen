@@ -69,7 +69,7 @@ async fn main() -> Result<()> {
                         Cell::new("Added")
                             .add_attribute(Attribute::Bold)
                             .set_alignment(CellAlignment::Right),
-                        Cell::new(document.time.date_naive()),
+                        Cell::new(document.time),
                     ]);
 
                     if let Some(tags) = document.metadata.get("tags") {

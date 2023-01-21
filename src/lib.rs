@@ -11,6 +11,7 @@ mod options;
 mod readability;
 mod source;
 mod url_preferences;
+mod fields;
 
 use std::path::PathBuf;
 use std::rc::Rc;

@@ -11,6 +11,7 @@ use thiserror::Error;
 use uuid::Uuid;
 
 use crate::document::*;
+use crate::fields::time_fields;
 use crate::options::SeenOptions;
 use crate::url_preferences::Preferences;
 
@@ -77,6 +78,11 @@ impl Prepare for Page {
         if let Some(host) = self.url.host() {
             metadata.insert("host".to_string(), serde_json::to_value(host).unwrap());
         }
+
+        metadata.insert(
+            "indextime".to_string(),
+            serde_json::to_value(time_fields(&time)).unwrap(),
+        );
 
         let md =
             futures::executor::block_on(crate::convert::md::html_to_md(&readable.content)).ok();
