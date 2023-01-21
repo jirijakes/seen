@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::{DateTime, Local};
 use isahc::http::{HeaderMap, Uri};
 use isahc::prelude::*;
 use isahc::{AsyncBody, Response};
@@ -7,7 +8,6 @@ use miette::Diagnostic;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use thiserror::Error;
-use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::document::*;
@@ -50,7 +50,7 @@ impl Prepare for Page {
         metadata: HashMap<String, Value>,
         options: &SeenOptions,
         preferences: &Preferences,
-        time: OffsetDateTime,
+        time: DateTime<Local>,
     ) -> Document {
         let mut metadata = metadata;
 

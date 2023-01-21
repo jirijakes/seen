@@ -3,12 +3,12 @@ pub mod video;
 
 use std::collections::HashMap;
 
+use chrono::{DateTime, Local};
 use isahc::http::Uri;
 use mime::{Mime, HTML, IMAGE, PNG, TEXT, VIDEO};
 pub use page::{make_page, Page, PageError};
 use serde::Serialize;
 use serde_json::Value;
-use time::OffsetDateTime;
 
 use self::video::Video;
 use crate::document::*;
@@ -30,7 +30,7 @@ impl Prepare for Source {
         metadata: HashMap<String, Value>,
         options: &SeenOptions,
         preferences: &Preferences,
-        time: OffsetDateTime,
+        time: DateTime<Local>,
     ) -> Document {
         match self {
             Source::Page(page) => page.prepare_document(metadata, options, preferences, time),

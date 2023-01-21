@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
+use chrono::{DateTime, Local};
 use isahc::http::Uri;
 use serde_json::Value;
-use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::options::SeenOptions;
@@ -16,7 +16,7 @@ pub trait Prepare {
         metadata: HashMap<String, Value>,
         options: &SeenOptions,
         preferences: &Preferences,
-        time: OffsetDateTime,
+        time: DateTime<Local>,
     ) -> Document;
 }
 
@@ -30,7 +30,7 @@ pub struct Document {
     pub uuid: Uuid,
 
     /// Time of indexing.
-    pub time: OffsetDateTime,
+    pub time: DateTime<Local>,
 
     /// Original URL.
     pub url: Uri,

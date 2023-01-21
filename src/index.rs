@@ -95,7 +95,10 @@ impl SeenIndex {
 
         doc.add_text(self.fields.title, &document.title);
         doc.add_text(self.fields.content, document.content.plain_text());
-        doc.add_date(self.fields.time, DateTime::from_utc(document.time));
+        doc.add_date(
+            self.fields.time,
+            DateTime::from_timestamp_secs(document.time.naive_utc().timestamp_millis()),
+        );
         doc.add_bytes(self.fields.uuid, document.uuid.into_bytes());
         doc.add_json_object(self.fields.meta, meta);
 

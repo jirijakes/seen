@@ -15,6 +15,7 @@ mod url_preferences;
 use std::path::PathBuf;
 use std::rc::Rc;
 
+use chrono::{DateTime, Local};
 use directories::ProjectDirs;
 use futures::{StreamExt, TryStreamExt};
 use index::IndexError;
@@ -25,7 +26,6 @@ use options::SeenOptions;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
 use thiserror::Error;
-use time::OffsetDateTime;
 use tokio::fs::read_to_string;
 use uuid::Uuid;
 
@@ -192,7 +192,7 @@ struct PartialDocument {
     title: String,
     uuid: Uuid,
     url: String,
-    time: OffsetDateTime,
+    time: DateTime<Local>,
     content_type: ContentType,
     metadata: String,
 }

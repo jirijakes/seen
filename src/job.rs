@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::{DateTime, Local};
 use indicatif::*;
 use isahc::http::header::CONTENT_TYPE;
 use isahc::http::Uri;
@@ -8,7 +9,6 @@ use miette::Diagnostic;
 use mime::Mime;
 use serde_json::Value;
 use thiserror::Error;
-use time::OffsetDateTime;
 use tokio::sync::oneshot;
 use tokio::time::{interval, Duration};
 use uuid::Uuid;
@@ -76,7 +76,7 @@ pub async fn go(
     let download_pb = multi.add(ProgressBar::new(0));
     download_pb.set_style(sty.clone());
 
-    let time = OffsetDateTime::now_utc();
+    let time = Local::now();
 
     total_pb.inc(1);
     let source = download_source(seen, &url, &preferences, download_pb.clone()).await?;
@@ -192,7 +192,7 @@ pub async fn index_source(
     source: Source,
     preferences: &Preferences,
     default_metadata: HashMap<String, Value>,
-    time: OffsetDateTime,
+    time: DateTime<Local>,
     tags: &[String],
 ) -> Result<(), JobError> {
     // We do not want to index the same URL if it already exists.

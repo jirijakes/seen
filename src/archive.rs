@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use chrono::{DateTime, Local, Utc};
 use futures::StreamExt;
 use miette::Diagnostic;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use thiserror::Error;
-use time::macros::format_description;
-use time::OffsetDateTime;
+// use time::macros::format_description;
+// use time::OffsetDateTime;
 use tokio::fs::{read_dir, read_to_string, File};
 use tokio::io::AsyncWriteExt;
 // use tokio_stream::StreamExt;
@@ -33,7 +34,7 @@ pub async fn archive_source(
     seen: &Seen,
     source: &Source,
     metadata: &HashMap<String, Value>,
-    time: OffsetDateTime,
+    time: DateTime<Local>,
 ) {
     let json = json!({
          "metadata": metadata,
@@ -41,12 +42,7 @@ pub async fn archive_source(
          "time": time
     });
 
-    let filename = OffsetDateTime::now_utc()
-        .format(&format_description!(
-            "[year][month][day][hour][minute][second][subsecond]"
-        ))
-        .unwrap()
-        .to_string();
+    let filename = Utc::now().format("%Y%m%d%H%M%S%f").to_string();
 
     let mut file = File::create(seen.archive_dir().join(format!("{filename}.json")))
         .await
@@ -124,7 +120,7 @@ pub async fn recover_source(seen: &Seen, file: impl AsRef<Path>) -> Result<(), R
 #[derive(Debug, Clone, Deserialize)]
 pub struct Archived {
     pub metadata: HashMap<String, Value>,
-    pub time: OffsetDateTime,
+    pub time: DateTime<Local>,
     pub source: ArchivedSource,
 }
 
