@@ -64,45 +64,23 @@ pub struct SeenIndex {
 impl SeenIndex {
     /// Create new seen index with the underlying tantivy index in directory 'path'.
     pub fn new<P: AsRef<Path>>(path: P) -> Result<SeenIndex, IndexError> {
-        let mut schema_builder = Schema::builder();
-        let text_field = TextFieldIndexing::default()
-            .set_tokenizer("en_stem")
-            .set_index_option(tantivy::schema::IndexRecordOption::WithFreqsAndPositions);
-        let text_options = TextOptions::default()
-            .set_indexing_options(text_field)
-            .set_stored();
-        let time_options = DateOptions::from(INDEXED)
-            .set_stored()
-            .set_fast(Cardinality::MultiValues)
-            .set_precision(DatePrecision::Seconds);
-        let title = schema_builder.add_text_field("title", text_options.clone());
-        let time = schema_builder.add_date_field("time", time_options);
-        let content = schema_builder.add_text_field("content", text_options);
-        let meta = schema_builder.add_json_field("meta", TEXT | STORED);
-        let uuid = schema_builder.add_bytes_field("uuid", STORED);
-        let schema = schema_builder.build();
+        let (schema, fields) = seen_schema();
 
         std::fs::create_dir_all(&path).unwrap();
         let dir = MmapDirectory::open(&path)?;
         let index = Index::open_or_create(dir, schema)?;
-
         let reader = index.reader()?;
         let writer = index.writer(100_000_000)?;
 
-        let query_parser = QueryParser::for_index(&index, vec![title, content, meta]);
+        let query_parser =
+            QueryParser::for_index(&index, vec![fields.title, fields.content, fields.meta]);
 
         Ok(SeenIndex {
             index,
             query_parser,
             reader,
+            fields,
             writer: RefCell::new(writer),
-            fields: Fields {
-                title,
-                content,
-                time,
-                meta,
-                uuid,
-            },
         })
     }
 
@@ -199,6 +177,37 @@ impl Debug for SeenIndex {
             .field("index", &self.index)
             .finish()
     }
+}
+
+/// Generates Tantivy [schema](tantivy::Schema) for Seen.
+fn seen_schema() -> (Schema, Fields) {
+    let mut schema_builder = Schema::builder();
+    let text_field = TextFieldIndexing::default()
+        .set_tokenizer("en_stem")
+        .set_index_option(tantivy::schema::IndexRecordOption::WithFreqsAndPositions);
+    let text_options = TextOptions::default()
+        .set_indexing_options(text_field)
+        .set_stored();
+    let time_options = DateOptions::from(INDEXED)
+        .set_stored()
+        .set_fast(Cardinality::MultiValues)
+        .set_precision(DatePrecision::Seconds);
+    let title = schema_builder.add_text_field("title", text_options.clone());
+    let time = schema_builder.add_date_field("time", time_options);
+    let content = schema_builder.add_text_field("content", text_options);
+    let meta = schema_builder.add_json_field("meta", TEXT | STORED);
+    let uuid = schema_builder.add_bytes_field("uuid", STORED);
+
+    let schema = schema_builder.build();
+    let fields = Fields {
+        title,
+        content,
+        time,
+        meta,
+        uuid,
+    };
+
+    (schema, fields)
 }
 
 /// One search hit.
